@@ -1,0 +1,16 @@
+# The repo .npmrc uses ${npm_read_token}, an env var set on the CI host and NOT inside
+# `docker build`. Leaving it in the context makes yarn fail while parsing config during
+# the build. Registry auth inside Docker comes from the GIT_AUTH_TOKEN BuildKit secret
+# in docker/*/Dockerfile instead.
+.npmrc
+
+node_modules
+.git
+.github
+.next
+out
+build
+coverage
+tests
+*.log
+.DS_Store

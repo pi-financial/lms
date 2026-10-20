@@ -1,0 +1,28 @@
+name: PR Lint
+
+# Validates the pull-request *title* against Conventional Commits. Titles become squash-merge
+# commit messages, which is what the release-versioning workflow reads to decide the next version.
+#
+# The shared workflow requires a scope matching `^[A-Z]+-\d+$`, i.e. a ticket key:
+#   feat(ABC-123): add the users page
+# Allowed types: fix, feat, build, chore, ci, docs, style, refactor, perf, test.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+# Editing a title fires this again; only the latest check matters and there is nothing half-done to
+# leave behind, so supersede the previous run.
+concurrency:
+  group: pr-lint-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint-pr:
+    name: Validate PR title
+    uses: pi-financial/github-action-workflow/.github/workflows/pr-lint-v1.yml@main
+    secrets:
+      gh_access_token: ${{ secrets.GH_ACCESS_TOKEN }}

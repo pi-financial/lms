@@ -1,0 +1,73 @@
+name: Post PR Deployment Comment
+
+on:
+  workflow_call:
+    inputs:
+      pr_number:
+        description: 'Pull request number'
+        required: true
+        type: number
+
+jobs:
+  post-comment:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Fetch deployment URL and post PR comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = ${{ inputs.pr_number }};
+
+            async function extractUrlFromLogs() {
+              const { data: jobs } = await github.rest.actions.listJobsForWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: context.runId,
+              });
+
+              const matchingJobs = jobs.jobs.filter(j => j.name.startsWith('pull-request /'));
+
+              for (const job of matchingJobs) {
+                try {
+                  const logs = await github.rest.actions.downloadJobLogsForWorkflowRun({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    job_id: job.id,
+                  });
+                  // Must match what nodejs-pr.yml echoes; a stale pattern drops the comment silently.
+                  const urlMatch = logs.data.match(/PR Environment ready at[^\n]*?(https?:\/\/[^\s\n"']+)/);
+                  if (urlMatch && urlMatch[1]) {
+                    core.info(`Extracted URL: ${urlMatch[1]}`);
+                    return urlMatch[1];
+                  }
+                } catch (e) {
+                  core.warning(`Could not read logs for job ${job.id}: ${e.message}`);
+                }
+              }
+              return null;
+            }
+
+            const url = await extractUrlFromLogs();
+            if (!url) {
+              core.warning('No deployment URL found in logs');
+              return;
+            }
+
+            const commentBody = [
+              '## PR Environment',
+              '',
+              `**Preview URL:** ${url}`,
+              '',
+              '> Make sure you are on VPN to access the environment.',
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: commentBody,
+            });

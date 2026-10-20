@@ -1,0 +1,50 @@
+name: CI/CD on Pull Request
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  # comment-pr reads this run's own job logs; without it that job 403s.
+  actions: read
+
+concurrency:
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pull-request:
+    if: ${{ github.event.label.name == 'Ready To Test' }}
+    uses: pi-financial/github-action-workflow/.github/workflows/nodejs-pr.yml@main
+    with:
+      # --- Application ---
+      application_name: nextjs-boilerplate
+      # `nodejs` — the shared lint action matches this string exactly and skips silently otherwise.
+      code_language: nodejs
+      nodejs_version: 24.x
+
+      # --- AWS ---
+      ecr_repository: ${{ vars.ECR_REPOSITORY }}
+      aws_region: ${{ vars.AWS_TH_REGION }}
+      role_to_assume: ${{ vars.ECR_SERVICE_ROLE_NONPROD }}
+
+      # --- Build ---
+      docker_file_path: docker/staging/Dockerfile
+      docker_context: .
+
+      # --- Deployment ---
+      gitops_dir_name: nextjs-boilerplate
+    secrets:
+      gh_access_token: ${{ secrets.GH_ACCESS_TOKEN }}
+      token_image_update: ${{ secrets.TOKEN_IMAGE_UPDATE }}
+      npm_read_token: ${{ secrets.NPM_READ_TOKEN }}
+
+  comment-pr:
+    needs: [pull-request]
+    if: ${{ github.event.label.name == 'Ready To Test' }}
+    uses: ./.github/workflows/post-pr-deployment-comment.yml
+    with:
+      pr_number: ${{ github.event.pull_request.number }}

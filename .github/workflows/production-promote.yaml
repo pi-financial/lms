@@ -1,0 +1,24 @@
+name: '[Deploy Production]: Promote to Production'
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  promote_to_public:
+    uses: pi-financial/github-action-workflow/.github/workflows/nodejs-promote-prod.yml@main
+    with:
+      # --- AWS ---
+      ecr_repository: ${{ vars.ECR_REPOSITORY }}
+      aws_region: ${{ vars.AWS_TH_REGION }}
+      role_to_assume_source: ${{ vars.ECR_SERVICE_ROLE_NONPROD }}
+      role_to_assume_target: ${{ vars.ECR_SERVICE_ROLE_PROD }}
+
+      # --- Deployment ---
+      gitops_dir_name: nextjs-boilerplate
+    secrets:
+      token_image_update: ${{ secrets.TOKEN_IMAGE_UPDATE }}

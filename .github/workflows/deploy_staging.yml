@@ -1,0 +1,43 @@
+name: Deploy To Staging
+
+on:
+  push:
+    branches: ['main']
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-staging:
+    uses: pi-financial/github-action-workflow/.github/workflows/nodejs-staging.yml@main
+    with:
+      # --- Application ---
+      application_name: nextjs-boilerplate
+      # `nodejs` — the shared lint action matches this string exactly and skips silently otherwise.
+      code_language: nodejs
+      nodejs_version: 24.x
+
+      # --- AWS ---
+      ecr_repository: ${{ vars.ECR_REPOSITORY }}
+      aws_region: ${{ vars.AWS_TH_REGION }}
+      role_to_assume: ${{ vars.ECR_SERVICE_ROLE_NONPROD }}
+
+      # --- Build ---
+      docker_file_path: docker/staging/Dockerfile
+      docker_context: .
+
+      # --- Deployment ---
+      deployment_env: staging
+      deployment_url: https://nextjs-boilerplate.nonprod.pi.internal
+      gitops_dir_name: nextjs-boilerplate
+
+      # --- Optional ---
+      sonarqube: 'true'
+    secrets:
+      gh_access_token: ${{ secrets.GH_ACCESS_TOKEN }}
+      token_image_update: ${{ secrets.TOKEN_IMAGE_UPDATE }}
+      sonarqube_token: ${{ secrets.SONARQUBE_TOKEN }}
+      npm_read_token: ${{ secrets.NPM_READ_TOKEN }}
+      directus_project_url: ${{ secrets.DIRECTUS_PROJECT_URL }}
+      directus_token: ${{ secrets.DIRECTUS_TOKEN }}

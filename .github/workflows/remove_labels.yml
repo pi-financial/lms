@@ -1,0 +1,30 @@
+name: Remove Labels on Push
+
+# pull_request.yml deploys on `labeled`, so stripping the labels on each push is what lets the
+# next commit redeploy.
+on:
+  pull_request:
+    types: [synchronize]
+
+permissions:
+  pull-requests: write
+
+concurrency:
+  group: remove-labels-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  remove-labels:
+    name: Strip deploy labels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove Ready To Test and preview labels
+        env:
+          # GITHUB_TOKEN is read-only on pull_request runs from a fork.
+          GH_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        # `gh pr edit --remove-label` fails when the label is not applied.
+        run: |
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "Ready To Test" || true
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "preview" || true

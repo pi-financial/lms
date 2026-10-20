@@ -1,0 +1,16 @@
+{
+    // The root tsconfig excludes `tests` so `next build` does not pull test files into the app's
+    // type program. That left the editor with no config covering this directory, so `@libs/*` and
+    // `@app/*` resolved to nothing and every test file showed phantom "Cannot find module" errors.
+    //
+    // This config is what the editor picks up for files under tests/. Path aliases are inherited:
+    // relative `paths` in an extended config resolve against the file that declared them, so they
+    // still point at the repo root.
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "noEmit": true,
+        "types": ["node", "jest", "@testing-library/jest-dom"]
+    },
+    "include": ["**/*.ts", "**/*.tsx", "**/*.mjs", "../app/**/*.ts", "../app/**/*.tsx", "../libs/**/*.ts"],
+    "exclude": []
+}

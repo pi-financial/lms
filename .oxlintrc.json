@@ -1,0 +1,23 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "plugins": ["typescript", "unicorn", "oxc", "react", "jsx-a11y", "import", "nextjs", "jest"],
+    "categories": {
+        "correctness": "error",
+        "suspicious": "warn",
+        "perf": "warn"
+    },
+    "env": { "browser": true, "node": true, "es2024": true },
+    "ignorePatterns": [".next/**", "out/**", "build/**", "coverage/**", "public/**", "next-env.d.ts"],
+    "rules": {
+        "react/react-in-jsx-scope": "off",
+        "import/no-unassigned-import": "off",
+        "no-underscore-dangle": "off",
+        "no-console": ["warn", { "allow": ["warn", "error"] }]
+    },
+    "overrides": [
+        {
+            "files": ["scripts/**", "tests/**", "docker/**", "next-logger.config.js", "libs/logger/edge.ts"],
+            "rules": { "no-console": "off" }
+        }
+    ]
+}
