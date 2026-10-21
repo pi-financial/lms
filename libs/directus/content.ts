@@ -10,8 +10,8 @@ import type { ContentNamespace, ContentResult, ContentRow, Language } from './de
  * Reads the `web_contents` collection — the shared CMS copy deck used across Pi web apps.
  *
  * Content changes on the editors' schedule, not the request's, so hitting Directus once an hour is
- * plenty. The tag lets a Directus webhook — or the demo page's Server Action — expire it and push
- * an edit through immediately.
+ * plenty. The tag lets a Directus webhook expire it and push an edit through immediately — which is
+ * where this belongs in a real app, called from a route handler on publish.
  */
 export const DIRECTUS_CACHE_TAG = 'directus-content'
 

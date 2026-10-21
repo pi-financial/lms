@@ -26,10 +26,11 @@ export default {
     testMatch: ['<rootDir>/tests/**/*.test.ts', '<rootDir>/tests/**/*.test.tsx'],
     clearMocks: true,
     coverageProvider: 'v8',
-    collectCoverageFrom: ['libs/**/*.{ts,tsx}', 'app/**/*.{ts,tsx}', '!**/*.d.ts'],
+    collectCoverageFrom: ['libs/**/*.{ts,tsx}', 'app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}', '!**/*.d.ts'],
     moduleNameMapper: {
         '^@libs/(.*)$': '<rootDir>/libs/$1',
         '^@app/(.*)$': '<rootDir>/app/$1',
+        '^@components/(.*)$': '<rootDir>/components/$1',
         // `server-only` throws by design when imported outside a Server Component. Under Jest there
         // is no such distinction, so it is stubbed out rather than worked around at each call site.
         '^server-only$': '<rootDir>/tests/__mocks__/emptyMock.js',

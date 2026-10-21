@@ -11,6 +11,14 @@
         "noEmit": true,
         "types": ["node", "jest", "@testing-library/jest-dom"]
     },
-    "include": ["**/*.ts", "**/*.tsx", "**/*.mjs", "../app/**/*.ts", "../app/**/*.tsx", "../libs/**/*.ts"],
+    "include": [
+        "**/*.ts",
+        "**/*.tsx",
+        "**/*.mjs",
+        "../app/**/*.ts",
+        "../app/**/*.tsx",
+        "../libs/**/*.ts",
+        "../components/**/*.tsx"
+    ],
     "exclude": []
 }

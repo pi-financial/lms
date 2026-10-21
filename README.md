@@ -3,8 +3,9 @@
 Starter template for Pi Next.js applications: Next 16 App Router, Server Components by default,
 observability, feature flags, CMS, security headers, a standalone container and the org's CI/CD.
 
-**Not included, on purpose:** a UI component framework, authentication, and a message catalogue.
-Locale _routing_ is here; translated UI strings are not.
+**Not included, on purpose:** a UI component framework and a message catalogue. This app is Thai
+and carries no locale routing — see **Theme** below for why that is a deliberate removal rather than
+an omission.
 
 <img width="891" height="634" alt="image" src="https://github.com/user-attachments/assets/df95edf7-7d2f-4f03-8202-5dbd42ffdd58" />
 
@@ -24,16 +25,24 @@ yarn dev
 
 Needs Node >= 24 and yarn 1.22 (npm is blocked — CI and the Dockerfiles expect `yarn.lock`).
 
-Open http://localhost:3000; the proxy redirects to `/th` or `/en`. Three demo routes:
+Open http://localhost:3000. Sign-in is required for everything else; until the Entra app
+registration exists, the sign-in screen offers a dev-only bypass (see [INFRA-REQUEST.md](INFRA-REQUEST.md)).
 
-| Route                  | Shows                                                                 |
-| ---------------------- | --------------------------------------------------------------------- |
-| `/[locale]/users`      | client-lib → user-srv-v2, filtered from the URL, rendered server-side |
-| `/[locale]/growthbook` | flags evaluated on the server for the attributes in the URL           |
-| `/[locale]/directus`   | tag-cached CMS read in the locale from the path                       |
+| Route                | Shows                                                                 |
+| -------------------- | --------------------------------------------------------------------- |
+| `/`                  | dashboard — courses in progress and finished                          |
+| `/courses`           | every course, filtered by category from the query string              |
+| `/courses/[id]`      | the course screen: episode rail, player, attachments                  |
+| `/results`           | certificates and the full quiz-attempt log                            |
+| `/editor`, `/report` | editor-only, gated on the `lms-editor` App role                       |
+| `/users`             | client-lib → user-srv-v2, filtered from the URL, rendered server-side |
 
-`/users` needs the Pi VPN and `/directus` needs a reachable `DIRECTUS_HOST`. Without them each page
-renders an explicit degraded state — which is part of what they demonstrate.
+Every screen reads through `libs/api/lms-srv.ts`, which serves `libs/api/fixtures.ts` until
+`LMS_SRV_BASE_URL` is set — so the screens are reviewable before the service exists. Each one
+carries a banner saying so, which disappears when the variable is set. `/users` needs the Pi VPN.
+
+The GrowthBook and Directus demo pages are gone; the libraries behind them are still wired up and
+documented below.
 
 ## Commands
 
@@ -96,11 +105,21 @@ in `definitions.ts`. Copy this shape per service. Rules in [AGENTS.md](AGENTS.md
 and typography into Tailwind v4 `@theme` variables (`bg-pi-mint-500`, `text-body-m`). The output is
 committed and a test runs `--check`, so a package upgrade that changes a colour fails the build.
 
-**Locale and theme — `libs/preferences/`, `proxy.ts`.** Locale lives in the path (`/th/directus`)
-because it changes what the page _contains_ and must be linkable; `proxy.ts` redirects unprefixed
-requests using a cookie. Theme lives in a cookie, read on the server so `<html data-theme>` is right
-in the first byte — a `localStorage` theme always paints the wrong colour first. Dark mode needs no
-extra classes: the Pi palette inverts consistently, so `text-grey-700` resolves correctly in both.
+**Theme — `libs/preferences/`.** A cookie, read on the server so `<html data-theme>` is right in
+the first byte — a `localStorage` theme always paints the wrong colour first. Dark mode needs no
+extra classes: the Pi palette inverts consistently, and `app/globals.css` maps it onto semantic
+roles (`bg-panel`, `text-ink-2`, `border-line`) so a component names what a colour _is for_ rather
+than which rung of a ramp it sits on.
+
+There is no locale routing. The app is Thai throughout, and a segment with one value in it is a
+prefix on every URL that buys nothing. If a second language is ever needed it comes back as a route
+segment (`/en/courses`) and not as a cookie: content language changes what a page _contains_, so it
+has to be linkable, and a cookie would make one URL serve two different documents.
+
+**Auth — `libs/auth/`, `proxy.ts`.** Microsoft Entra ID over OIDC, same as console-web. `proxy.ts`
+refuses every route without a session except `/auth/*`. App roles arrive in the ID token's `roles`
+claim; `lms-editor` gates the editor screens — in the nav for presentation, and again in the page
+through `requireEditor()`, because a hidden link is still a URL anyone can type.
 
 **Security headers — `libs/security/securityHeaders.mjs`.** CSP and friends on every route,
 **enforced** rather than report-only, since a fresh app loads no third party. Adding a vendor means
@@ -200,7 +219,8 @@ Gotchas, all verified against the shared workflows:
    `NEXT_PUBLIC_SIGNOZ_SERVICE_NAME` in `.env.*`. Set the repo variable `ECR_REPOSITORY` and add a
    matching app directory under `registry/environments/*/argocd/` in `pi-financial/gitops`.
 2. Register routes in `app/nav-items.ts` — the header nav and landing page both read from it.
-3. Delete the demo routes and `libs/user/` once you have real pages, or keep one as a reference.
+3. Delete `/users` and `libs/user/` once you have real pages, or keep it as a reference for the
+   client-lib pattern.
 4. Trim `FeatureKey` and `ContentNamespace` to your own.
 5. Add whatever UI framework you want. Nothing here assumes one.
 

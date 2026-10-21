@@ -9,7 +9,7 @@ import type { LoggerConfig } from '@pi-financial/pi-common-js/logger'
  */
 export function getLoggerConfig(): LoggerConfig {
     return {
-        serviceName: process.env.NEXT_PUBLIC_SIGNOZ_SERVICE_NAME || 'Pi.NextjsBoilerplate.UI',
+        serviceName: process.env.NEXT_PUBLIC_SIGNOZ_SERVICE_NAME || 'Pi.Lms.UI',
         environment: getEnvironment(),
         isLocal: process.env.NODE_ENV !== 'production',
         logsEnabled: process.env.NEXT_PUBLIC_SIGNOZ_LOG_ENABLED === 'true',

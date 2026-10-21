@@ -1,93 +1,42 @@
 'use client'
 
-import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import { useState, useTransition } from 'react'
-import {
-    LOCALES,
-    LOCALE_COOKIE,
-    PREFERENCE_MAX_AGE,
-    THEME_COOKIE,
-    withLocale,
-    type Locale,
-    type Theme
-} from '@libs/preferences/definitions'
+import { useState } from 'react'
+import { Moon, Sun } from 'lucide-react'
+import { PREFERENCE_MAX_AGE, THEME_COOKIE, type Theme } from '@libs/preferences/definitions'
 
 /**
- * Theme and language switcher.
+ * Light/dark toggle.
  *
- * Cookies are written here rather than through a Server Action on purpose: these are display
- * preferences, not server state, and a round-trip to set one would make the toggle feel broken.
- * `SameSite=Lax` and no `Secure` flag so it also works over plain HTTP in local development —
- * neither value is sensitive.
+ * The cookie is written here rather than through a Server Action on purpose: this is a display
+ * preference, not server state, and a round-trip to set one would make the toggle feel broken.
+ * Flipping `data-theme` on `<html>` re-resolves every palette variable instantly — no re-render,
+ * nothing to fetch.
  *
- * The two switches then diverge, because what has to change differs:
- *
- * - **Theme** is purely CSS. Flipping `data-theme` on `<html>` re-resolves every palette variable
- *   instantly; no server round-trip, nothing to re-render.
- * - **Locale** is part of the URL, so switching it is a navigation. The cookie is still written so
- *   the proxy can send a returning visitor to the right prefix from `/`.
+ * `SameSite=Lax` and no `Secure` flag so it also works over plain HTTP in local development; the
+ * value is the word `light` or `dark` and is not sensitive.
  */
-function writeCookie(name: string, value: string) {
-    document.cookie = `${name}=${value}; path=/; max-age=${PREFERENCE_MAX_AGE}; SameSite=Lax`
-}
-
-export function PreferencesSwitcher({ locale, theme }: { locale: Locale; theme: Theme }) {
-    const router = useRouter()
-    const pathname = usePathname()
-    const searchParams = useSearchParams()
-    const [isPending, startTransition] = useTransition()
-    // Seeded from the server-rendered value, then owned by the client so the button label flips
+export function PreferencesSwitcher({ theme }: { theme: Theme }) {
+    // Seeded from the server-rendered value, then owned by the client so the icon flips
     // immediately rather than waiting for a re-render that never comes.
-    const [currentTheme, setCurrentTheme] = useState<Theme>(theme)
+    const [current, setCurrent] = useState<Theme>(theme)
 
-    function toggleTheme() {
-        const next: Theme = currentTheme === 'light' ? 'dark' : 'light'
-        setCurrentTheme(next)
+    function toggle() {
+        const next: Theme = current === 'light' ? 'dark' : 'light'
+        setCurrent(next)
         document.documentElement.dataset.theme = next
-        writeCookie(THEME_COOKIE, next)
-    }
-
-    function changeLocale(next: Locale) {
-        if (next === locale) return
-
-        writeCookie(LOCALE_COOKIE, next)
-        // Swap the prefix on the current path and keep the query string, so switching language on
-        // a filtered page does not throw the filter away.
-        const query = searchParams.toString()
-        const target = withLocale(next, pathname) + (query ? `?${query}` : '')
-        startTransition(() => router.push(target))
+        document.cookie = `${THEME_COOKIE}=${next}; path=/; max-age=${PREFERENCE_MAX_AGE}; SameSite=Lax`
     }
 
     return (
-        <div className="ml-auto flex items-center gap-4">
-            <fieldset className="flex items-center gap-1">
-                <legend className="sr-only">Language</legend>
-                {LOCALES.map(value => (
-                    <button
-                        key={value}
-                        type="button"
-                        onClick={() => changeLocale(value)}
-                        disabled={isPending}
-                        aria-pressed={value === locale}
-                        className={`rounded px-2 py-1 text-label-s-medium uppercase disabled:opacity-50 ${
-                            value === locale ? 'bg-pi-mint-50 text-pi-mint-700' : 'text-grey-700 hover:bg-grey-100'
-                        }`}
-                    >
-                        {value}
-                    </button>
-                ))}
-            </fieldset>
-
-            <button
-                type="button"
-                onClick={toggleTheme}
-                aria-pressed={currentTheme === 'dark'}
-                className="rounded px-2 py-1 text-body-m text-grey-700 hover:bg-grey-100"
-            >
-                {/* aria-pressed carries the state; the glyph is decorative. */}
-                <span aria-hidden="true">{currentTheme === 'dark' ? '☀' : '☾'}</span>
-                <span className="sr-only">Switch to {currentTheme === 'dark' ? 'light' : 'dark'} theme</span>
-            </button>
-        </div>
+        <button
+            type="button"
+            onClick={toggle}
+            aria-pressed={current === 'dark'}
+            className="rounded-lg p-2 text-ink-3 hover:bg-panel-2 hover:text-ink"
+        >
+            {/* aria-pressed carries the state; the icon is decorative. */}
+            {current === 'dark' ? <Sun className="size-4" aria-hidden /> : <Moon className="size-4" aria-hidden />}
+            <span className="sr-only">{current === 'dark' ? 'ใช้ธีมสว่าง' : 'ใช้ธีมมืด'}</span>
+        </button>
     )
 }

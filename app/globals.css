@@ -3,18 +3,158 @@
 /* Pi design tokens as Tailwind theme variables. Generated — see scripts/generate-palette-css.mjs. */
 @import './palette.generated.css';
 
+/*
+ * Surface and meaning tokens for the app shell.
+ *
+ * The Pi palette is a set of ramps — `grey-200`, `black-900`, `pi-mint-500` — and says nothing
+ * about which rung is a page background and which is a card. Spelling that out at every call site
+ * is how a shell ends up with four nearly-identical greys, and it is also what makes dark mode a
+ * per-component edit rather than one block of overrides.
+ *
+ * So the roles live here and the ramps stay underneath them: `bg-surface`, `text-ink-2`,
+ * `border-line`. The dark values are a single override below, and nothing in a component changes.
+ *
+ * Named after `pi-elearning/mock/index.html`, which this shell follows, so a difference between
+ * the two is visible by reading the same word in both files.
+ */
+@theme {
+    /* Page behind the panels. */
+    --color-surface: var(--color-grey-300);
+    /* Cards, the rail, the top bar — anything raised off the page. */
+    --color-panel: var(--color-white);
+    /* Inset within a panel: progress-bar track, thumbnail, avatar backing. */
+    --color-panel-2: var(--color-grey-500);
+
+    /* Body text. */
+    --color-ink: var(--color-black-900);
+    /* Secondary text: a card's supporting line, an inactive tab. */
+    --color-ink-2: var(--color-black-400);
+    /* Tertiary text: metadata, counts, timestamps. Never load-bearing on its own. */
+    --color-ink-3: var(--color-black-300);
+
+    --color-line: var(--color-grey-600);
+    --color-line-soft: var(--color-grey-500);
+
+    /*
+     * Progress that has been earned, and the brand colour by coincidence — the mock's thesis is
+     * that a filled bar means work actually done, so the two are the same ink on purpose.
+     */
+    --color-earned: var(--color-pi-mint-600);
+    --color-earned-soft: var(--color-pi-mint-50);
+    --color-earned-ink: var(--color-pi-mint-800);
+
+    /* Attention without alarm: a quiz still outstanding, a certificate past its date. */
+    --color-locked: var(--color-orange-700);
+    --color-locked-soft: var(--color-orange-50);
+}
+
+/*
+ * The shadow every panel carries.
+ *
+ * Two rules it has to follow, both of which look like fussiness and are not:
+ *
+ * 1. Not a `--shadow-*` entry in `@theme`. That generates a `shadow-panel` class with the value
+ *    *inlined at build time*, which the dark override below can never reach — a shadow tuned for a
+ *    light page, left on a dark one, where it is invisible. `shadow-(--shadow-panel)` at the call
+ *    site keeps the `var()` live in the rule instead, so the cascade resolves it per theme.
+ *
+ * 2. Inside `@layer base`, alongside the dark value. Unlayered CSS beats *every* cascade layer, so
+ *    a bare `:root` here would win over `[data-theme='dark']` in `base` no matter which came first
+ *    in the file, and the dark shadow would silently never apply.
+ */
+@layer base {
+    :root {
+        --shadow-panel: 0 1px 2px rgb(14 21 24 / 0.05), 0 10px 30px -20px rgb(14 21 24 / 0.45);
+    }
+}
+
+@layer theme {
+    [data-theme='dark'] {
+        --color-surface: var(--color-black-50);
+        --color-panel: var(--color-black-100);
+        --color-panel-2: var(--color-black-300);
+
+        --color-ink: var(--color-black-900);
+        --color-ink-2: var(--color-black-800);
+        --color-ink-3: var(--color-black-700);
+
+        --color-line: var(--color-black-400);
+        --color-line-soft: var(--color-black-300);
+
+        --color-earned: var(--color-pi-mint-500);
+        --color-earned-soft: var(--color-pi-mint-50);
+        --color-earned-ink: var(--color-pi-mint-800);
+
+        --color-locked: var(--color-orange-700);
+        --color-locked-soft: var(--color-orange-100);
+    }
+}
+
+@layer base {
+    /* Deeper and darker: the light shadow is a faint grey that disappears entirely against a dark
+       panel, leaving the cards flat. See the note beside the light value above. */
+    [data-theme='dark'] {
+        --shadow-panel: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 30px -20px rgb(0 0 0 / 0.9);
+    }
+}
+
 @layer base {
     html {
         font-family: var(--font-graphik-th);
+        /* Without this the OS theme still reaches form controls and scrollbars, so a light page
+           would carry dark selects. `data-theme` is the app's own switch, not the OS's. */
+        color-scheme: light;
+    }
+
+    [data-theme='dark'] {
+        color-scheme: dark;
     }
 
     body {
-        background-color: var(--color-white);
-        color: var(--color-black-900);
+        background-color: var(--color-surface);
+        color: var(--color-ink);
     }
 
-    [data-theme='dark'] body {
-        background-color: var(--color-black-50);
-        color: var(--color-black-900);
+    /* Figures read down a column — a progress percentage, a score, a certificate number — so they
+       are set in tabular numerals wherever `font-rubik` is used for them. */
+    .tnum {
+        font-variant-numeric: tabular-nums;
+    }
+
+    /*
+     * `<progress>` as a flat bar — see `components/ui/progress-bar.tsx`.
+     *
+     * The element carries its own role and value, which is why it is worth the styling cost over a
+     * `<div role="progressbar">`. That cost is here: the track and the fill are vendor
+     * pseudo-elements that cannot be reached from a Tailwind class, and the two engines name them
+     * differently — WebKit splits track and value, Firefox exposes only the value and paints the
+     * track through `background` on the element itself. Both are needed; neither can be merged
+     * into one selector, because a rule listing an unknown pseudo-element is dropped whole.
+     */
+    .progress-bar {
+        appearance: none;
+        display: block;
+        width: 100%;
+        height: --spacing(1.5);
+        border: 0;
+        border-radius: var(--radius-full);
+        overflow: hidden;
+        /* Firefox's track, and the fallback anywhere the pseudo-elements do not apply. */
+        background-color: var(--color-panel-2);
+    }
+
+    .progress-bar::-webkit-progress-bar {
+        background-color: var(--color-panel-2);
+    }
+
+    .progress-bar::-webkit-progress-value {
+        background-color: var(--color-earned);
+        border-radius: var(--radius-full);
+        transition: width 0.3s;
+    }
+
+    .progress-bar::-moz-progress-bar {
+        background-color: var(--color-earned);
+        border-radius: var(--radius-full);
     }
 }
